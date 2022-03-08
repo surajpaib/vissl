@@ -23,6 +23,7 @@ from vissl.data.dataset_catalog import (
     register_datasets,
 )
 from vissl.data.disk_dataset import DiskImageDataset
+from vissl.data.medical_dataset import MedicalImageDataset
 from vissl.data.ssl_dataset import GenericSSLDataset
 from vissl.data.synthetic_dataset import SyntheticImageDataset
 from vissl.data.torchvision_dataset import TorchvisionDataset
@@ -43,6 +44,8 @@ DATASET_SOURCE_MAP = {
     "disk_folder": DiskImageDataset,
     "torchvision_dataset": TorchvisionDataset,
     "synthetic": SyntheticImageDataset,
+    "medical_image_dataset": MedicalImageDataset,
+
 }
 
 

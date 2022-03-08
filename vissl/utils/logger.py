@@ -6,6 +6,7 @@
 import atexit
 import functools
 import logging
+import coloredlogs
 import subprocess
 import sys
 
@@ -51,6 +52,7 @@ def setup_logging(name, output_dir=None, rank=0):
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
+    coloredlogs.install(level='DEBUG', logger=logger)
     logging.root = logger
 
 
