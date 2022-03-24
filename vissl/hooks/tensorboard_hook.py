@@ -6,6 +6,7 @@
 import logging
 
 import torch
+import torchvision
 from classy_vision import tasks
 from classy_vision.generic.distributed_util import is_primary
 from classy_vision.hooks.classy_hook import ClassyHook
@@ -69,6 +70,7 @@ class SSLTensorboardHook(ClassyHook):
         log_params_every_n_iterations: int = -1,
         log_params_gradients: bool = False,
         log_activation_statistics: int = 0,
+        log_training_samples: bool = False,
     ) -> None:
         """The constructor method of SSLTensorboardHook.
 
@@ -93,6 +95,8 @@ class SSLTensorboardHook(ClassyHook):
         self.log_params_every_n_iterations = log_params_every_n_iterations
         self.log_params_gradients = log_params_gradients
         self.log_activation_statistics = log_activation_statistics
+        self.log_training_samples = log_training_samples
+
         if self.log_activation_statistics > 0:
             self.activation_watcher = ActivationStatisticsMonitor(
                 observer=ActivationStatisticsTensorboardWatcher(tb_writer),
@@ -133,6 +137,7 @@ class SSLTensorboardHook(ClassyHook):
         if self.log_activation_statistics:
             self.activation_watcher.set_iteration(task.iteration + 1)
 
+
         if (
             self.log_params
             and self.log_params_every_n_iterations > 0
@@ -143,6 +148,7 @@ class SSLTensorboardHook(ClassyHook):
                 self.tb_writer.add_histogram(
                     f"Parameters/{name}", parameter, global_step=task.iteration
                 )
+
 
     def on_phase_start(self, task: "tasks.ClassyTask") -> None:
         """
@@ -301,6 +307,12 @@ class SSLTensorboardHook(ClassyHook):
                 scalar_value=eta_secs / 3600.0,
                 global_step=iteration,
             )
+
+            # Log training sample images
+            training_images = task.last_batch.sample["input"]
+            grid = torchvision.utils.make_grid(training_images)
+            self.tb_writer.add_image('training_samples', grid, iteration)
+
 
             # GPU Memory
             if torch.cuda.is_available():

@@ -74,4 +74,5 @@ def get_tensorboard_hook(cfg):
         log_params_every_n_iterations=cfg.HOOKS.TENSORBOARD_SETUP.LOG_PARAMS_EVERY_N_ITERS,
         log_params_gradients=cfg.HOOKS.TENSORBOARD_SETUP.LOG_PARAMS_GRADIENTS,
         log_activation_statistics=cfg.MONITORING.MONITOR_ACTIVATION_STATISTICS,
+        log_training_samples=cfg.MONITORING.MONITOR_TRAINING_SAMPLES,
     )
