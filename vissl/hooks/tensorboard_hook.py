@@ -309,10 +309,10 @@ class SSLTensorboardHook(ClassyHook):
             )
 
             # Log training sample images
-            training_images = task.last_batch.sample["input"]
-            grid = torchvision.utils.make_grid(training_images)
-            self.tb_writer.add_image('training_samples', grid, iteration)
-
+            if self.log_training_samples:
+                training_images = task.last_batch.sample["input"]
+                grid = torchvision.utils.make_grid(training_images)
+                self.tb_writer.add_image('training_samples', grid, iteration)
 
             # GPU Memory
             if torch.cuda.is_available():
