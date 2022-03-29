@@ -911,6 +911,18 @@ config:
         effective_batch_size: 4096    # automatically inferred
 
     # ----------------------------------------------------------------------------------- #
+    # Negative Sampled InfoNCE LOSS (Specific to SimCLR https://arxiv.org/abs/2002.05709)
+    # Negative samples are explicitly sampled 
+    # ----------------------------------------------------------------------------------- #
+    neg_sampled_info_nce_loss:
+      temperature: 0.1
+      buffer_params:
+        world_size: 64                # automatically inferred
+        embedding_dim: 128
+        effective_batch_size: 4096    # automatically inferred
+
+
+    # ----------------------------------------------------------------------------------- #
     # Multi-crop version of SimCLR InfoNCE LOSS (supports multicrop augmentation proposed
     # in https://arxiv.org/abs/2006.09882)
     # ----------------------------------------------------------------------------------- #
