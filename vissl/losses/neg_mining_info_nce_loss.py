@@ -15,11 +15,14 @@ from vissl.config import AttrDict
 from vissl.utils.distributed_utils import gather_from_all
 
 
-@register_loss("neg_sampled_info_nce_loss")
-class NegativeSampledInfoNCELoss(ClassyLoss):
+@register_loss("neg_mining_info_nce_loss")
+class NegativeMiningInfoNCELoss(ClassyLoss):
     """
     This is the loss which was proposed in SimCLR https://arxiv.org/abs/2002.05709 paper.
     See the paper for the details on the loss.
+
+    Added handling of negative mining to the loss. Each positive sample has a negatively
+    mined sample to it. 
 
     Config params:
         temperature (float): the temperature to be applied on the logits
@@ -30,13 +33,13 @@ class NegativeSampledInfoNCELoss(ClassyLoss):
     """
 
     def __init__(self, loss_config: AttrDict, device: str = "gpu"):
-        super(NegativeSampledInfoNCELoss, self).__init__()
+        super(NegativeMiningInfoNCELoss, self).__init__()
 
         self.loss_config = loss_config
         # loss constants
         self.temperature = self.loss_config.temperature
         self.buffer_params = self.loss_config.buffer_params
-        self.info_criterion = NegativeSampledInfoNCECriterion(
+        self.info_criterion = NegativeMiningInfoNCECriterion(
             self.buffer_params, self.temperature
         )
 
@@ -63,7 +66,7 @@ class NegativeSampledInfoNCELoss(ClassyLoss):
         return pprint.pformat(repr_dict, indent=2)
 
 
-class NegativeSampledInfoNCECriterion(nn.Module):
+class NegativeMiningInfoNCECriterion(nn.Module):
     """
     The criterion corresponding to the SimCLR loss as defined in the paper
     https://arxiv.org/abs/2002.05709.
@@ -77,7 +80,7 @@ class NegativeSampledInfoNCECriterion(nn.Module):
     """
 
     def __init__(self, buffer_params, temperature: float, balanced: bool = True):
-        super(NegativeSampledInfoNCECriterion, self).__init__()
+        super(NegativeMiningInfoNCECriterion, self).__init__()
 
         self.use_gpu = get_cuda_device_index() > -1
         self.temperature = temperature
@@ -90,7 +93,7 @@ class NegativeSampledInfoNCECriterion(nn.Module):
 
         self.balanced = balanced
         self.precompute_pos_neg_mask()
-        logging.info(f"Creating Info-NCE loss on Rank: {self.dist_rank}")
+        logging.info(f"Creating Negative Mining Info-NCE loss on Rank: {self.dist_rank}")
 
     def precompute_pos_neg_mask(self):
         """
@@ -114,8 +117,6 @@ class NegativeSampledInfoNCECriterion(nn.Module):
         all_indices = np.arange(total_images // 2)
         pos_members = orig_images * np.arange(self.num_pos)
         orig_members = torch.arange(orig_images)
-
-
 
         for anchor in np.arange(self.num_pos):
             for img_idx in range(orig_images):
@@ -145,7 +146,9 @@ class NegativeSampledInfoNCECriterion(nn.Module):
         batch_size = embedding.shape[0]
         T = self.temperature
         num_pos = self.num_pos
+
         assert batch_size % num_pos == 0, "Batch size should be divisible by num_pos"
+        assert batch_size == self.pos_mask.shape[0], "Batch size should be equal to pos_mask shape"
 
         # Step 1: gather all the embeddings. Shape example: 4096 x 128
         embeddings_buffer = self.gather_embeddings(embedding)
@@ -157,8 +160,8 @@ class NegativeSampledInfoNCECriterion(nn.Module):
         neg = torch.sum(similarity * self.neg_mask, 1)
 
         # Ignore the negative samples as entries for loss calculation
-        pos = pos[: batch_size // 2]
-        neg = neg[: batch_size // 2]
+        pos = pos[:(batch_size // 2)]
+        neg = neg[:(batch_size // 2)]
 
         loss = -(torch.mean(torch.log(pos / (pos + neg) )))
         return loss
