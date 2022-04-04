@@ -13,7 +13,7 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 from vissl.config import AttrDict, check_cfg_version
 from vissl.utils.io import save_file
-from vissl.utils.misc import is_augly_available
+from vissl.utils.misc import is_augly_available, is_monai_available
 
 
 def save_attrdict_to_disk(cfg: AttrDict):
@@ -481,11 +481,13 @@ def assert_transforms(cfg):
     for transforms in [cfg.DATA.TRAIN.TRANSFORMS, cfg.DATA.TEST.TRANSFORMS]:
         for transform in transforms:
             if "transform_type" in transform:
-                assert transform["transform_type"] in [None, "augly"]
+                assert transform["transform_type"] in [None, "augly", "monai"]
 
                 if transform["transform_type"] == "augly":
                     assert is_augly_available(), "Please pip install augly."
 
+                if transform["transform_type"] == "monai":
+                    assert is_monai_available(), "Please pip install monai."
 
 def infer_fsdp(cfg):
     """
