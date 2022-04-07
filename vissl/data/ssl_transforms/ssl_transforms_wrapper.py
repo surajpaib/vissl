@@ -23,7 +23,7 @@ if is_monai_available():
 # transforms (including torchvision) require passing image only as input.
 _TRANSFORMS_WITH_LABELS = ["ImgRotatePil", "ShuffleImgPatches"]
 _TRANSFORMS_WITH_COPIES = [
-    "ImgReplicatePil",
+    "ImgReplicate",
     "ImgPilToPatchesAndImage",
     "ImgPilToMultiCrop",
 ]

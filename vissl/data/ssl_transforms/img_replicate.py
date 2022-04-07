@@ -10,8 +10,8 @@ from classy_vision.dataset.transforms import register_transform
 from classy_vision.dataset.transforms.classy_transform import ClassyTransform
 
 
-@register_transform("ImgReplicatePil")
-class ImgReplicatePil(ClassyTransform):
+@register_transform("ImgReplicate")
+class ImgReplicate(ClassyTransform):
     """
     Adds the same image multiple times to the batch K times so that the batch.
     Size is now N*K. Use the simclr_collator to convert into batches.
