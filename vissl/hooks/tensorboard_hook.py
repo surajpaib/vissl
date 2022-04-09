@@ -15,6 +15,7 @@ from vissl.utils.activation_statistics import (
     ActivationStatisticsMonitor,
     ActivationStatisticsObserver,
 )
+from vissl.utils.tensorboard import create_visual
 
 
 try:
@@ -310,10 +311,11 @@ class SSLTensorboardHook(ClassyHook):
 
             # Log training sample images
             if self.log_training_samples:
-                training_images = task.last_batch.sample["input"]
-                grid = torchvision.utils.make_grid(training_images)
-                self.tb_writer.add_image('training_samples', grid, iteration)
+                visual = task.last_batch.sample["input"].clone()
+                out = create_visual(visual)
+                self.tb_writer.add_image('visuals', out, iteration)
 
+                
             # GPU Memory
             if torch.cuda.is_available():
                 # Memory actually being used
