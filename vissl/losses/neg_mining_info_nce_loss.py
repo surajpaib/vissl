@@ -85,6 +85,9 @@ class NegativeMiningInfoNCECriterion(nn.Module):
         self.use_gpu = get_cuda_device_index() > -1
         self.temperature = temperature
         self.num_pos = 2
+
+        # Same number of negatives as positives are loaded
+        self.num_neg = self.num_pos
         self.buffer_params = buffer_params
         self.criterion = nn.CrossEntropyLoss()
         self.dist_rank = get_rank()
@@ -103,7 +106,8 @@ class NegativeMiningInfoNCECriterion(nn.Module):
 
         # total_images is x2 SimCLR Info-NCE loss 
         # as we have negative samples for each positive sample
-        total_images = self.buffer_params.effective_batch_size * 2
+
+        total_images = self.buffer_params.effective_batch_size * self.num_neg
         world_size = self.buffer_params.world_size
 
         # Batch size computation is different from SimCLR paper
@@ -111,21 +115,21 @@ class NegativeMiningInfoNCECriterion(nn.Module):
         orig_images = batch_size // self.num_pos
         rank = self.dist_rank
 
-        pos_mask = torch.zeros(batch_size * 2, total_images)
-        neg_mask = torch.zeros(batch_size * 2, total_images)
+        pos_mask = torch.zeros(batch_size * self.num_neg, total_images)
+        neg_mask = torch.zeros(batch_size * self.num_neg, total_images)
 
-        all_indices = np.arange(total_images // 2)
+        all_indices = np.arange(total_images // self.num_neg)
         pos_members = orig_images * np.arange(self.num_pos)
         orig_members = torch.arange(orig_images)
 
         for anchor in np.arange(self.num_pos):
             for img_idx in range(orig_images):
-                delete_inds = batch_size * rank + img_idx + pos_members
+                delete_inds = (batch_size * self.num_neg) * rank + img_idx + pos_members
                 neg_inds = torch.tensor(np.delete(all_indices, delete_inds)).long() + 2 * orig_images
                 neg_mask[anchor * orig_images + img_idx, neg_inds] = 1
 
             for pos in np.delete(np.arange(self.num_pos), anchor):
-                pos_inds = batch_size * rank + pos * orig_images + orig_members
+                pos_inds = (batch_size * self.num_neg) * rank + pos * orig_images + orig_members
                 pos_mask[
                     torch.arange(
                         anchor * orig_images, (anchor + 1) * orig_images
