@@ -10,17 +10,20 @@ from classy_vision.dataset.transforms import (
     register_transform,
 )
 from classy_vision.dataset.transforms.classy_transform import ClassyTransform
-from vissl.utils.misc import is_augly_available
+from vissl.utils.misc import is_augly_available, is_monai_available
 
 if is_augly_available():
     import augly.image as imaugs  # NOQA
+
+if is_monai_available():
+    import monai.transforms as monai_transforms  # Medical Imaging
 
 # Below the transforms that require passing the labels as well. This is specifc
 # to SSL only where we automatically generate the labels for training. All other
 # transforms (including torchvision) require passing image only as input.
 _TRANSFORMS_WITH_LABELS = ["ImgRotatePil", "ShuffleImgPatches"]
 _TRANSFORMS_WITH_COPIES = [
-    "ImgReplicatePil",
+    "ImgReplicate",
     "ImgPilToPatchesAndImage",
     "ImgPilToMultiCrop",
 ]
@@ -130,6 +133,9 @@ class SSLTransformsWrapper(ClassyTransform):
         elif args["transform_type"] == "augly":
             # Build augly transform.
             return self._build_augly_transform(args)
+        elif args["transform_type"] == "monai":
+            # Build monai transform.
+            return self._build_monai_transform(args)
         else:
             raise RuntimeError(
                 f"Transform type: { args.transform_type } is not supported"
@@ -154,6 +160,21 @@ class SSLTransformsWrapper(ClassyTransform):
         del args["transform_type"]
 
         return getattr(imaugs, name)(**args)
+
+    def _build_monai_transform(self, args):
+        assert is_monai_available(), "Please pip install monai."
+        # the name should be available in augly.image
+        # if users specify the transform name in snake case,
+        # we need to convert it to title case.
+        name = args["name"]
+
+        assert hasattr(monai_transforms, name), f"{name} isn't a registered tranform for augly."
+
+        # Delete superfluous keys.
+        del args["name"]
+        del args["transform_type"]
+
+        return getattr(monai_transforms, name)(**args)
 
     def _is_transform_with_labels(self):
         """
@@ -247,6 +268,8 @@ class SSLTransformsWrapper(ClassyTransform):
         transform_receives_entire_batch=False,
     ) -> "SSLTransformsWrapper":
         indices = config.get("indices", [])
+        config.pop("indices", None)
+
         return cls(
             indices,
             transform_types=transform_types,

@@ -8,6 +8,8 @@ This script contains some helpful functions to handle tensorboard setup.
 """
 
 import logging
+import torchvision
+import torch
 
 from vissl.utils.checkpoint import get_checkpoint_folder
 from vissl.utils.io import makedir
@@ -74,4 +76,14 @@ def get_tensorboard_hook(cfg):
         log_params_every_n_iterations=cfg.HOOKS.TENSORBOARD_SETUP.LOG_PARAMS_EVERY_N_ITERS,
         log_params_gradients=cfg.HOOKS.TENSORBOARD_SETUP.LOG_PARAMS_GRADIENTS,
         log_activation_statistics=cfg.MONITORING.MONITOR_ACTIVATION_STATISTICS,
+        log_training_samples=cfg.MONITORING.MONITOR_TRAINING_SAMPLES,
     )
+
+
+def create_visual(input):
+    if input.dim() == 5: # NCDHW
+        input = input.unbind(dim=2) # Expand over slice dimensions
+        input = input[len(input) // 2] # Take middle slice
+        
+    return torchvision.utils.make_grid(input, nrow=len(input))
+   

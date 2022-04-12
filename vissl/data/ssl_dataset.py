@@ -341,12 +341,19 @@ class GenericSSLDataset(VisslDatasetBase):
 
         # TODO: this doesn't yet handle the case where the length of datasets
         # could be different.
-        item = {"data": [], "data_valid": [], "data_idx": []}
+        item = {"data": [], "data_valid": [], "data_idx": [], "label": []}
         for data_source in self.data_objs:
             data, valid = data_source[subset_idx]
-            item["data"].append(data)
-            item["data_idx"].append(idx)
-            item["data_valid"].append(1 if valid else -1)
+
+            if isinstance(data, list):
+                item["data"].extend(data)
+                item["data_idx"].extend([idx for _ in range(len(data))])
+                item["data_valid"].extend([1 if valid else -1 for _ in range(len(data))])
+            
+            else:
+                item["data"].append(data)
+                item["data_idx"].append(idx)
+                item["data_valid"].append(1 if valid else -1)
 
         # There are three types of label_type (data labels): "standard",
         # "sample_index", and "zero". "standard" uses the labels associated
@@ -357,8 +364,8 @@ class GenericSSLDataset(VisslDatasetBase):
         # each sample the label == 0, which is necessary when using the
         # CutMixUp collator because of the label smoothing that is built in
         # to its functionality.
+
         if (len(self.label_objs) > 0) or self.label_type == "standard":
-            item["label"] = []
             for label_source in self.label_objs:
                 if isinstance(label_source, list):
                     lbl = [entry[subset_idx] for entry in label_source]
@@ -366,12 +373,10 @@ class GenericSSLDataset(VisslDatasetBase):
                     lbl = _convert_lbl_to_long(label_source[subset_idx])
                 item["label"].append(lbl)
         elif self.label_type == "sample_index":
-            item["label"] = []
-            for _ in range(len(self.data_objs)):
+            for _ in range(len(item["data"])):
                 item["label"].append(idx)
         elif self.label_type == "zero":
-            item["label"] = []
-            for _ in range(len(self.data_objs)):
+            for _ in range(len(item["data"])):
                 item["label"].append(0)
         else:
             raise ValueError(f"Unknown label type: {self.label_type}")

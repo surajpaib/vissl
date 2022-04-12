@@ -13,7 +13,7 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 from vissl.config import AttrDict, check_cfg_version
 from vissl.utils.io import save_file
-from vissl.utils.misc import is_augly_available
+from vissl.utils.misc import is_augly_available, is_monai_available
 
 
 def save_attrdict_to_disk(cfg: AttrDict):
@@ -373,6 +373,19 @@ def infer_losses_config(cfg):
             num_positives * batch_size * world_size
         )
 
+    # some inference for the Negative sampled Info-NCE loss.
+    if "neg_mining_info_nce_loss" in cfg.LOSS.name:
+        cfg.LOSS[cfg.LOSS.name]["buffer_params"]["world_size"] = (
+            cfg.DISTRIBUTED.NUM_NODES * cfg.DISTRIBUTED.NUM_PROC_PER_NODE
+        )
+
+        world_size = cfg.LOSS[cfg.LOSS.name]["buffer_params"]["world_size"]
+        batch_size = cfg.DATA.TRAIN.BATCHSIZE_PER_REPLICA
+        num_positives = 2  # simclr uses 2 copies per image
+        cfg.LOSS[cfg.LOSS.name]["buffer_params"]["effective_batch_size"] = (
+            num_positives * batch_size * world_size
+        )        
+
     # bce_logits_multiple_output_single_target
     if cfg.LOSS.name == "bce_logits_multiple_output_single_target":
         world_size = cfg.DISTRIBUTED.NUM_NODES * cfg.DISTRIBUTED.NUM_PROC_PER_NODE
@@ -468,11 +481,13 @@ def assert_transforms(cfg):
     for transforms in [cfg.DATA.TRAIN.TRANSFORMS, cfg.DATA.TEST.TRANSFORMS]:
         for transform in transforms:
             if "transform_type" in transform:
-                assert transform["transform_type"] in [None, "augly"]
+                assert transform["transform_type"] in [None, "augly", "monai"]
 
                 if transform["transform_type"] == "augly":
                     assert is_augly_available(), "Please pip install augly."
 
+                if transform["transform_type"] == "monai":
+                    assert is_monai_available(), "Please pip install monai."
 
 def infer_fsdp_setup(cfg):
     """

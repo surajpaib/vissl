@@ -101,6 +101,19 @@ def is_augly_available():
     return augly_available
 
 
+def is_monai_available():
+    """
+    Check if apex is available with simple python imports.
+    """
+    try:
+        import monai.transforms # NOQA
+
+        monai_available = True
+    except (AssertionError, ImportError):
+        monai_available = False
+    return monai_available
+
+
 def find_free_tcp_port():
     """
     Find the free port that can be used for Rendezvous on the local machine.

@@ -164,6 +164,7 @@ config:
     # - 0 means that we do not monitor statistics
     # - N > 0 means we monitor every N iterations
     MONITOR_ACTIVATION_STATISTICS: 0
+    MONITOR_TRAINING_SAMPLES: False
 
   # ----------------------------------------------------------------------------------- #
   # PROFILING
@@ -624,7 +625,7 @@ config:
         WIDTH_MULTIPLIER: 1
         NORM: BatchNorm    # BatchNorm | LayerNorm | GroupNorm
         # If using GroupNorm, this sets number of groups. Recommend 32 as a
-        # naive suggestion. GroupNorm only available for ResNe(X)t.
+        # naive sduggestion. GroupNorm only available for ResNe(X)t.
         GROUPNORM_GROUPS: 32
         # Use weight-standardized convolutions
         STANDARDIZE_CONVOLUTIONS: False
@@ -635,6 +636,22 @@ config:
         # for the pixel-wise task. Torchvision default is stride=2 and all other models
         # use this so we set the default as 2.
         LAYER4_STRIDE: 2
+
+
+      # ------------------------------------------------------------------------
+      # Taken from MONAI
+      # Source for the parameters: 
+      # https://docs.monai.io/en/stable/networks.html#monai.networks.nets.ResNet
+      RESNETS_3D:
+        DEPTH: 50
+        WIDTH_MULTIPLIER: 1
+        SPATIAL_DIMS: 3
+        NORM: BatchNorm
+        LAYER4_STRIDE: 2
+        SHORTCUT_TYPE: "B"
+
+
+
 
       # ------------------------------------------------------------- #
       # SimCLR-v2 ResNet params that includes selective kernel
@@ -956,6 +973,18 @@ config:
         world_size: 64                # automatically inferred
         embedding_dim: 128
         effective_batch_size: 4096    # automatically inferred
+
+    # ----------------------------------------------------------------------------------- #
+    # Negative Sampled InfoNCE LOSS (Specific to SimCLR https://arxiv.org/abs/2002.05709)
+    # Negative samples are explicitly sampled 
+    # ----------------------------------------------------------------------------------- #
+    neg_mining_info_nce_loss:
+      temperature: 0.1
+      buffer_params:
+        world_size: 64                # automatically inferred
+        embedding_dim: 128
+        effective_batch_size: 4096    # automatically inferred
+
 
     # ----------------------------------------------------------------------------------- #
     # Multi-crop version of SimCLR InfoNCE LOSS (supports multicrop augmentation proposed
