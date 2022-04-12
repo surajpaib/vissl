@@ -469,7 +469,7 @@ def infer_losses_config(cfg):
     # some inference for DINO loss.
     if cfg.LOSS.name == "dino_loss":
         assert len(cfg.MODEL.HEAD.PARAMS) == 1
-        assert cfg.MODEL.HEAD.PARAMS[0][0] == "swav_head"
+        assert cfg.MODEL.HEAD.PARAMS[0][0] in {"swav_head", "dino_head"}
         cfg.LOSS.dino_loss.output_dim = cfg.MODEL.HEAD.PARAMS[0][1]["num_clusters"][0]
         cfg.LOSS.dino_loss.num_crops = total_num_crops or cfg.LOSS.dino_loss.num_crops
         cfg.DATA.TRAIN.COLLATE_FUNCTION = "multicrop_collator"
@@ -691,3 +691,8 @@ def infer_and_assert_hydra_config(cfg, engine_name: str):
         # Remove CHECK_NAN hooks, as model output masking casts the logits
         # to -inf, which will throw an error from the CHECK_NAN hooks.
         cfg.HOOKS.CHECK_NAN = False
+
+    if cfg.HOOKS.EMA_MODEL.ENABLE_EMA_METERS:
+        assert cfg.METERS.get("name", "") or cfg.METERS.get(
+            "names", []
+        ), "Please specify METER.name or METER.names if you are enabling the EMA_MODEL hook."

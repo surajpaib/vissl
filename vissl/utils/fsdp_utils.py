@@ -60,6 +60,18 @@ def is_fsdp_model(model):
     return False
 
 
+def is_valid_fsdp_model(model: FSDP) -> bool:
+    """
+    Checks if a FSDP model is valid by looking at the sub-FSDP modules
+    and ensuring that they do not think they are the root FSDP model
+    """
+    for n, m in model.named_modules():
+        if isinstance(m, FSDP):
+            if n != "" and m._is_root is not None:
+                return False
+    return True
+
+
 def fsdp_wrapper(module, **kwargs):
     """
     Customer FSDP wrapper, adding the missing options
@@ -94,7 +106,9 @@ class _BigConvAutoWrapPolicy:
     def __init__(self, threshold: int):
         self.threshold = threshold
 
-    def __call__(self, module: nn.Module, recurse: bool, unwrapped_params: int):
+    def __call__(
+        self, module: nn.Module, recurse: bool, unwrapped_params: int, **kwargs
+    ):
         is_large = unwrapped_params >= self.threshold
         force_leaf_modules = default_auto_wrap_policy.FORCE_LEAF_MODULES
         if recurse:

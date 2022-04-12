@@ -7,6 +7,7 @@ import gc
 import logging
 
 import torch
+from classy_vision.generic.distributed_util import is_distributed_training_run
 from classy_vision.generic.util import copy_model_to_gpu
 from classy_vision.hooks import ClassyHook
 from classy_vision.losses import build_loss
@@ -14,6 +15,7 @@ from classy_vision.meters import build_meter
 from classy_vision.optim import build_optimizer, build_optimizer_schedulers
 from classy_vision.tasks import ClassificationTask, register_task
 from classy_vision.tasks.classification_task import AmpType, BroadcastBuffersMode
+from fairscale.nn import FullyShardedDataParallel
 from iopath.common.file_io import g_pathmgr
 from torch.cuda.amp import GradScaler as TorchGradScaler
 from vissl.config import AttrDict
@@ -22,6 +24,7 @@ from vissl.models import build_model, convert_sync_bn
 from vissl.optimizers import get_optimizer_param_groups
 from vissl.utils.activation_checkpointing import manual_gradient_reduction
 from vissl.utils.checkpoint import CheckpointLoader
+from vissl.utils.ema_model import ModelEmaV2
 from vissl.utils.misc import is_apex_available, is_fairscale_sharded_available
 
 
@@ -112,6 +115,10 @@ class SelfSupervisionTask(ClassificationTask):
         # communication as much as possible
         self.set_ddp_bucket_cap_mb()
         self.use_gpu = self.device.type == "cuda"
+        # optionally save the exponential moving average (ema) of the base_model.
+        # and/or run the meters on the ema of the base_model.
+        self.ema_model = None
+        self.ema_meters = []
 
     def set_device(self):
         """
@@ -521,6 +528,23 @@ class SelfSupervisionTask(ClassificationTask):
 
         return model
 
+    def init_distributed_data_parallel_model(self):
+        """
+        This method overloads the ClassificationTask class's method from ClassyVision.
+        """
+        if not is_distributed_training_run():
+            return
+
+        for module in self.base_model.modules():
+            if isinstance(module, FullyShardedDataParallel):
+                raise ValueError(
+                    "DistributedDataParallel should not be used"
+                    "with a FullyShardedDataParallel model.\n"
+                    "Please set config.TRAINER.TASK_NAME='self_supervision_fsdp_task'"
+                )
+
+        super().init_distributed_data_parallel_model()
+
     def set_epoch(
         self, phase_type: str, epoch: int, start_iter: int, train_phase_idx: int
     ):
@@ -648,6 +672,8 @@ class SelfSupervisionTask(ClassificationTask):
         # with the CPU inputs. When the model runs, it rather sends CUDA.
         self.base_model.to(self.device)
 
+        self._set_ema_model_state(state)
+
         for meter, meter_state in zip(self.meters, state["meters"]):
             meter.set_classy_state(meter_state)
         self.optimizer.set_classy_state(state["optimizer"])
@@ -690,6 +716,16 @@ class SelfSupervisionTask(ClassificationTask):
 
         if self.train and self.train_phase_idx >= 0:
             self.optimizer.on_epoch(self.where)
+
+    def _set_ema_model_state(self, state):
+        """
+        Only used if EmaMetersHook is enabled.
+        """
+        if self.ema_model is not None:
+            logging.info("Loading ema model")
+            self.ema_model.module.set_classy_state(state["ema_model"])
+            for meter, meter_state in zip(self.ema_meters, state["ema_meters"]):
+                meter.set_classy_state(meter_state)
 
     def _update_classy_state(self, state_dict=None):
         """
@@ -779,6 +815,11 @@ class SelfSupervisionTask(ClassificationTask):
                 self.base_model, self.optimizer.optimizer, **self.amp_args
             )
 
+        # Create EMA average of the model if hook is specified.
+        ema_config = self.config["HOOKS"]["EMA_MODEL"]
+        if ema_config["ENABLE_EMA_METERS"] or ema_config["SAVE_EMA_MODEL"]:
+            self._create_ema_model()
+
         # Restore an hypothetical checkpoint
         vissl_state_dict = None
         if self.checkpoint_path is not None:
@@ -787,10 +828,12 @@ class SelfSupervisionTask(ClassificationTask):
                 checkpoint_path=self.checkpoint_path,
                 device=torch.device("cpu"),
             )
-
-            self.iteration = self.checkpoint["iteration"]
-            self.local_iteration_num = self.checkpoint["iteration_num"]
-            vissl_state_dict = self.checkpoint.get("classy_state_dict")
+            if self.checkpoint is not None:
+                self.iteration = self.checkpoint["iteration"]
+                self.local_iteration_num = self.checkpoint["iteration_num"]
+                vissl_state_dict = self.checkpoint.get("classy_state_dict")
+            else:
+                raise ValueError(f"Could not load checkpoint: {self.checkpoint_path}")
 
         current_train_phase_idx = (
             vissl_state_dict["train_phase_idx"] + 1 if vissl_state_dict else 0
@@ -846,3 +889,13 @@ class SelfSupervisionTask(ClassificationTask):
             self.base_model.dummy_layer = torch.nn.Linear(4, 4)
             if self.device.type == "cuda":
                 self.base_model = copy_model_to_gpu(self.base_model)
+
+    def _create_ema_model(self):
+        logging.info("Building the EMA model.")
+        ema_model = build_model(self.config["MODEL"], self.config["OPTIMIZER"])
+        self.ema_model = ModelEmaV2(
+            ema_model,
+            decay=self.config["HOOKS"]["EMA_MODEL"]["DECAY"],
+            device=self.config["HOOKS"]["EMA_MODEL"]["EMA_DEVICE"],
+        )
+        self.ema_model.set(self.base_model)
