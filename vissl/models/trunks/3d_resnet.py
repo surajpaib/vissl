@@ -98,7 +98,8 @@ class ResNet3D(nn.Module):
             block_inplanes=in_planes,
             spatial_dims=self.spatial_dims,
             n_input_channels=INPUT_CHANNEL[self.model_config.INPUT_TYPE],
-            conv1_t_stride=2
+            conv1_t_stride=2,
+            widen_factor=self.width_multiplier,
         )
 
         self._feature_blocks = nn.ModuleDict(
