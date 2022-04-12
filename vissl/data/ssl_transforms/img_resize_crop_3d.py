@@ -18,7 +18,11 @@ class RandomResizedCrop3D(ClassyTransform):
     """
     Combines monai's random spatial crop followed by resize to the desired size.
 
-    Modification: The spatial crop is done with same dimensions for all the axes 
+    Modification: 
+    1. The spatial crop is done with same dimensions for all the axes 
+    2. Handles cases where the crop_size is greater than the image size by choosing 
+        the smallest dimension as the random scale.
+
     """
 
     def __init__(self, size, scale: List[float] = [0.5, 1.0]):
@@ -34,6 +38,11 @@ class RandomResizedCrop3D(ClassyTransform):
     def __call__(self, image):
         random_scale = torch.empty(1).uniform_(*self.scale).item()
 
+        # Handle case when image size is lesser than crop size
+        smallest_dim = min(image.shape[1:]) # Shape is (C, D, H, W)
+        if smallest_dim < self.size[0]:
+            random_scale = smallest_dim / self.size[0]
+            
         # First scale the image, crop it and resize it to the desired size
         rand_cropper = RandScaleCrop(random_scale, random_size=False)
         resizer = Resize(self.size, mode="trilinear")
