@@ -118,17 +118,31 @@ class NegativeMiningInfoNCECriterion(nn.Module):
         pos_mask = torch.zeros(batch_size * self.num_neg, total_images)
         neg_mask = torch.zeros(batch_size * self.num_neg, total_images)
 
-        all_indices = np.arange(total_images // self.num_neg)
-        pos_members = orig_images * np.arange(self.num_pos)
+        all_indices = np.arange(total_images)
+
+        # Index for pairs of images (original + copy)        
+        pairs = orig_images * np.arange(self.num_pos)
+        
+        # Remove all indices associated with positive samples & copies (for neg_mask)
+        all_pos_members = []
+        for _rank in range(world_size):
+            all_pos_members += list(_rank * (batch_size * 2) + np.arange(batch_size))
+
+        all_indices_pos_removed = np.delete(all_indices, all_pos_members)
+
+        # Index of original positive images
         orig_members = torch.arange(orig_images)
 
         for anchor in np.arange(self.num_pos):
             for img_idx in range(orig_images):
-                delete_inds = (batch_size * self.num_neg) * rank + img_idx + pos_members
-                neg_inds = torch.tensor(np.delete(all_indices, delete_inds)).long() + 2 * orig_images
+                # delete_inds are spaced by batch_size for each rank as 
+                # all_indices_pos_removed (half of the indices) is deleted first
+                delete_inds = batch_size * rank + img_idx + pairs
+                neg_inds = torch.tensor(np.delete(all_indices_pos_removed, delete_inds)).long() 
                 neg_mask[anchor * orig_images + img_idx, neg_inds] = 1
 
             for pos in np.delete(np.arange(self.num_pos), anchor):
+                # Pos_inds are spaced by batch_size * self.num_neg for each rank
                 pos_inds = (batch_size * self.num_neg) * rank + pos * orig_images + orig_members
                 pos_mask[
                     torch.arange(
