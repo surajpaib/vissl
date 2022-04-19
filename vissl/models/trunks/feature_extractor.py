@@ -14,9 +14,17 @@ from vissl.models.trunks import get_model_trunk
 
 POOL_OPS = {
     "AdaptiveAvgPool2d": nn.AdaptiveAvgPool2d,
+    "AdaptiveAvgPool3d": nn.AdaptiveAvgPool3d,
+
     "AdaptiveMaxPool2d": nn.AdaptiveMaxPool2d,
+    "AdaptiveMaxPool3d": nn.AdaptiveMaxPool3d,
+
     "AvgPool2d": nn.AvgPool2d,
+    "AvgPool3d": nn.AvgPool3d,
+
     "MaxPool2d": nn.MaxPool2d,
+    "MaxPool3d": nn.MaxPool3d,
+    
     "Identity": Identity,
 }
 
