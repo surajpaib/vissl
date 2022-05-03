@@ -6,6 +6,7 @@
 import contextlib
 import logging
 import queue
+import PIL
 
 import numpy as np
 import torch
@@ -247,9 +248,18 @@ class QueueDataset(Dataset):
         return self.dequeue_images_queue.qsize()
 
     def _is_large_image(self, sample):
-        h, w = sample.size
-        if h * w > 10000000:
-            return True
+
+        if isinstance(sample, PIL.Image.Image):
+            h, w = sample.size
+            if h * w > 10000000:
+                return True
+            return False
+
+        elif isinstance(sample, np.ndarray):
+            if sample.size > 10000000:
+                return True
+            return False
+
         return False
 
     def on_sucess(self, sample):
