@@ -20,7 +20,7 @@ class RandomResizedCrop3D(ClassyTransform):
 
     Modification: 
     1. The spatial crop is done with same dimensions for all the axes 
-    2. Handles cases where the crop_size is greater than the image size by choosing 
+    2. Handles cases where the image_size is less than the crop_size by choosing 
         the smallest dimension as the random scale.
 
     """
