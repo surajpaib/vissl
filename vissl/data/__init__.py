@@ -23,11 +23,19 @@ from vissl.data.dataset_catalog import (
     register_datasets,
 )
 from vissl.data.disk_dataset import DiskImageDataset
-from vissl.data.medical_dataset import MedicalImageDataset
+
+from vissl.utils.misc import add_cwd_modules
+
+add_cwd_modules("datasets")
+from datasets.medical_dataset import MedicalImageDataset
+
 from vissl.data.ssl_dataset import GenericSSLDataset
 from vissl.data.synthetic_dataset import SyntheticImageDataset
 from vissl.data.torchvision_dataset import TorchvisionDataset
 from vissl.utils.misc import set_dataloader_seeds, setup_multiprocessing_method
+
+
+
 
 
 __all__ = [

@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import collections
+import importlib
 import logging
 import os
 import random
@@ -11,6 +12,7 @@ import sys
 import tempfile
 import time
 from functools import partial, wraps
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
@@ -106,7 +108,7 @@ def is_monai_available():
     Check if apex is available with simple python imports.
     """
     try:
-        import monai.transforms # NOQA
+        import monai.transforms  # NOQA
 
         monai_available = True
     except (AssertionError, ImportError):
@@ -420,3 +422,18 @@ def torch_version() -> Tuple[int, ...]:
         numbering[2] = "0"
 
     return tuple(int(n) for n in numbering)
+
+
+def add_cwd_modules(folder):
+    """
+    Adds modules from the current working dir. This is useful for 
+    custom project imports with cluttering the vissl package
+    """
+    import_dir = Path(os.getcwd()) / folder / "__init__.py"
+
+    spec = importlib.util.spec_from_file_location(folder, str(import_dir))
+    project_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(project_module)
+    sys.modules[folder] = project_module
+
+    logging.info(f"Add custom module from {import_dir}")
