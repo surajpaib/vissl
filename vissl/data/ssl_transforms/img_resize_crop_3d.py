@@ -37,13 +37,6 @@ class RandomResizedCrop3D(ClassyTransform):
 
     def __call__(self, image):
         random_scale = torch.empty(1).uniform_(*self.scale).item()
-
-        # Handle case when image size is lesser than crop size
-        smallest_dim = min(image.shape[1:]) # Shape is (C, D, H, W)
-        if smallest_dim < self.size[0]:
-            random_scale = smallest_dim / self.size[0]
-            
-        # First scale the image, crop it and resize it to the desired size
         rand_cropper = RandScaleCrop(random_scale, random_size=False)
         resizer = Resize(self.size, mode="trilinear")
 

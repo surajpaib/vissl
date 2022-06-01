@@ -73,7 +73,8 @@ class ResNet3D(nn.Module):
         self.width_multiplier = self.trunk_config.WIDTH_MULTIPLIER
         self.shortcut_type = self.trunk_config.SHORTCUT_TYPE
         self._norm_layer = nn.BatchNorm3d
-        
+        self.first_kernel_size = self.trunk_config.FIRST_KERNEL_SIZE
+        self.first_kernel_stride = self.trunk_config.FIRST_KERNEL_STRIDE    
 
         self.spatial_dims = self.trunk_config.SPATIAL_DIMS
         in_planes = (64, 128, 256, 512)
@@ -98,7 +99,8 @@ class ResNet3D(nn.Module):
             block_inplanes=in_planes,
             spatial_dims=self.spatial_dims,
             n_input_channels=INPUT_CHANNEL[self.model_config.INPUT_TYPE],
-            conv1_t_stride=2,
+            conv1_t_stride=self.first_kernel_stride,
+            conv1_t_size=self.first_kernel_size,
             widen_factor=self.width_multiplier,
         )
 

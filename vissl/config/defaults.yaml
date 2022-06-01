@@ -662,8 +662,8 @@ config:
         NORM: BatchNorm
         LAYER4_STRIDE: 2
         SHORTCUT_TYPE: "B"
-
-
+        FIRST_KERNEL_SIZE: 7
+        FIRST_KERNEL_STRIDE: 2
 
 
       # ------------------------------------------------------------- #
