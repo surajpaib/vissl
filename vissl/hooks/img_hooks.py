@@ -44,7 +44,7 @@ class ImgScreenshotHook(ClassyHook):
                         sample_count += 1
 
                 except StopIteration:
-                    del self.task.data_iterator
+                    del data_iterator
                     gc.collect()
                     break
 
