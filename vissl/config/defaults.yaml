@@ -90,6 +90,7 @@ config:
     # ----------------------------------------------------------------------------------- #
     # Whether or not to check if the loss or model_output is NaN.
     # ----------------------------------------------------------------------------------- #
+    SCREENSHOT: False
     CHECK_NAN: True
     EMA_MODEL:
       # Save an exponential moving average of the model weights.

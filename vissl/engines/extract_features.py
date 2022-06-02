@@ -12,6 +12,7 @@ from classy_vision.hooks import ClassyHook
 from vissl.config import AttrDict
 from vissl.engines.engine_registry import Engine, register_engine
 from vissl.hooks import default_hook_generator
+from vissl.hooks.img_hooks import ImgScreenshotHook
 from vissl.hooks.profiling_hook import CudaSynchronizeHook
 from vissl.models.model_helpers import get_trunk_output_feature_names
 from vissl.trainer import SelfSupervisionTrainer
@@ -148,4 +149,8 @@ def extract_features_hook_generator(cfg: AttrDict) -> List[ClassyHook]:
     hooks = []
     if cfg.MODEL.FSDP_CONFIG.FORCE_SYNC_CUDA:
         hooks.append(CudaSynchronizeHook())
+
+    if cfg.HOOKS.SCREENSHOT:
+        hooks.extend([ImgScreenshotHook(cfg.CHECKPOINT.DIR + "/screenshots")])
+
     return hooks
