@@ -29,19 +29,19 @@ class ImgScreenshotHook(ClassyHook):
         if is_primary() and not(task.train):
             # Log training sample images
             data_iterator = iter(task.dataloaders["test"])
-            sample_count = 0
             while True:
                 try:
                     sample = next(data_iterator)
                     assert isinstance(sample, dict)
                     input = torch.cat(sample["data"])
+                    idx = torch.cat(sample["data_idx"])
 
                     for n in range(input.size(0)):
                         img = input.unbind(dim=2) # Expand over slice dimensions
                         img = img[len(img) // 2] # Take middle slice
                         img = img[n].unsqueeze(0)
-                        torchvision.utils.save_image(img, f"{self.save_dir}/{sample_count}.png")
-                        sample_count += 1
+                        index = idx[n].item()
+                        torchvision.utils.save_image(img, f"{self.save_dir}/{index}.png")
 
                 except StopIteration:
                     del data_iterator
