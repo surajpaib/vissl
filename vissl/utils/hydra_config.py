@@ -11,17 +11,27 @@ from typing import Any, List, Tuple
 
 import torch
 from omegaconf import DictConfig, OmegaConf
+import yaml
 from vissl.config import AttrDict, check_cfg_version
 from vissl.utils.io import save_file
 from vissl.utils.misc import is_augly_available, is_monai_available
+from vissl.utils import plantuml_api
+from vissl.utils.checkpoint import get_checkpoint_folder
 
 
 def save_attrdict_to_disk(cfg: AttrDict):
-    from vissl.utils.checkpoint import get_checkpoint_folder
 
     yaml_output_file = f"{get_checkpoint_folder(cfg)}/train_config.yaml"
     save_file(cfg.to_dict(), yaml_output_file)
 
+
+def save_config_as_graph(cfg: AttrDict):
+    for key in ["DATA", "LOSS", "OPTIMIZER", "MODEL"]:
+        dump = yaml.dump(cfg[key].to_dict())
+        content = plantuml_api.generate_uml(dump)
+        out = open(f"{get_checkpoint_folder(cfg)}/{key}.png", 'wb')
+        out.write(content)
+        out.close()
 
 def convert_to_attrdict(
     cfg: DictConfig, cmdline_args: List[Any] = None, dump_config: bool = True
@@ -58,6 +68,8 @@ def convert_to_attrdict(
     infer_and_assert_hydra_config(config, cfg.engine_name)
     if dump_config:
         save_attrdict_to_disk(config)
+        save_config_as_graph(config)
+
     convert_fsdp_dtypes(config)
     return cfg, config
 
