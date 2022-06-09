@@ -505,6 +505,12 @@ config:
       # names of the meter. Useful in cases where we have several meters. For the linear
       # feature evaluation workflows, meter name is automatically inferred.
       meter_names: []
+
+    auc_meter:
+      num_classes: 2
+      
+
+    
   # ----------------------------------------------------------------------------------- #
   # MACHINE (cpu, gpu)
   # ----------------------------------------------------------------------------------- #
