@@ -38,6 +38,25 @@ def is_fairscale_sharded_available():
     return fairscale_sharded_available
 
 
+def is_wandb_available():
+    """
+    Check if wandb is available with python imports.
+
+    To install wandb, run
+        `pip install wandb``
+
+    """
+    try:
+        import wandb
+        wandb_available = True
+
+    except ImportError:
+        wandb_available = False
+
+    return wandb_available
+        
+
+
 def is_faiss_available():
     """
     Check if faiss is available with simple python imports.

@@ -36,6 +36,8 @@ from vissl.hooks.swav_momentum_hooks import (
     SwAVMomentumHook,
     SwAVMomentumNormalizePrototypesHook,
 )
+
+from vissl.hooks.wandb_hook import WandbHook
 from vissl.hooks.tensorboard_hook import SSLTensorboardHook  # noqa
 from vissl.utils.checkpoint import get_checkpoint_folder
 from vissl.utils.tensorboard import get_tensorboard_hook, is_tensorboard_available
@@ -185,5 +187,8 @@ def default_hook_generator(cfg: AttrDict) -> List[ClassyHook]:
                 )
             ]
         )
+
+    if cfg.HOOKS.WANDB.ENABLE:
+        hooks.extend([WandbHook(cfg.HOOKS.WANDB)])
 
     return hooks

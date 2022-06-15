@@ -90,6 +90,14 @@ config:
     # ----------------------------------------------------------------------------------- #
     # Whether or not to check if the loss or model_output is NaN.
     # ----------------------------------------------------------------------------------- #
+    WANDB:
+      ENABLE: True
+      NAME: null
+      PROJECT: vissl-project
+      WATCH_MODEL: True
+      LOG_FREQ: 10
+      LOG_IMAGES: True
+
     SCREENSHOT: False
     CHECK_NAN: True
     EMA_MODEL:
