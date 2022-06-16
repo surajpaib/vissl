@@ -79,19 +79,21 @@ class WandbHook(ClassyHook):
         in the tensorboard configuration. Also resents the CUDA memory counter.
         """
         # Log train/test accuracy
-        if is_primary():
-            phase_type = "Training" if task.train else "Testing"
-            for meter in task.meters:
-                for metric_name, vals in meter.value.items():
-                    for i, val in vals.items():
-                        tag_name = f"{phase_type}/{meter.name}_{metric_name}_Output_{i}"
-                        wandb.log({f"{tag_name}":  round(val, 5)}, step=task.train_phase_idx)
+        if not is_primary():
+            return 
+        
+        phase_type = "Training" if task.train else "Testing"
+        for meter in task.meters:
+            for metric_name, vals in meter.value.items():
+                for i, val in vals.items():
+                    tag_name = f"{phase_type}/{meter.name}_{metric_name}_Output_{i}"
+                    wandb.log({f"{tag_name}":  round(val, 5), 'epoch': task.train_phase_idx}, step=task.iteration)
 
 
-            # Reset the GPU Memory counter
-            if torch.cuda.is_available():
-                torch.cuda.reset_max_memory_allocated()
-                torch.cuda.reset_max_memory_cached()
+        # Reset the GPU Memory counter
+        if torch.cuda.is_available():
+            torch.cuda.reset_max_memory_allocated()
+            torch.cuda.reset_max_memory_cached()
 
     def on_update(self, task: "tasks.ClassyTask") -> None:
         """
