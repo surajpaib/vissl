@@ -680,6 +680,14 @@ config:
         FIRST_KERNEL_SIZE: 7
         FIRST_KERNEL_STRIDE: 2
 
+      SENET_3D:
+        SPATIAL_DIMS: 3
+        VARIANT: SEResNeXt50
+
+
+      EFFICIENTNET_3D:
+        SPATIAL_DIMS: 3
+        VARIANT: B0
 
       # ------------------------------------------------------------- #
       # SimCLR-v2 ResNet params that includes selective kernel

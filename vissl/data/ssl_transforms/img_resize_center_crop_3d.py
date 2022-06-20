@@ -7,14 +7,14 @@ import logging
 import torch
 from typing import Any, Dict, List
 
-from monai.transforms import RandScaleCrop, Resize
+from monai.transforms import CenterScaleCrop, Resize
 
 from classy_vision.dataset.transforms import register_transform
 from classy_vision.dataset.transforms.classy_transform import ClassyTransform
 
 
-@register_transform("RandomResizedCrop3D")
-class RandomResizedCrop3D(ClassyTransform):
+@register_transform("RandomResizedCenterCrop3D")
+class RandomResizedCenterCrop3D(ClassyTransform):
     """
     Combines monai's random spatial crop followed by resize to the desired size.
 
@@ -39,7 +39,7 @@ class RandomResizedCrop3D(ClassyTransform):
     def __call__(self, image):
         if torch.rand(1) < self.prob:
             random_scale = torch.empty(1).uniform_(*self.scale).item()
-            rand_cropper = RandScaleCrop(random_scale, random_size=False)
+            rand_cropper = CenterScaleCrop(random_scale)
             resizer = Resize(self.size, mode="trilinear")
 
             for transform in [rand_cropper, resizer]:
@@ -49,7 +49,7 @@ class RandomResizedCrop3D(ClassyTransform):
         
 
     @classmethod
-    def from_config(cls, config: Dict[str, Any]) -> "RandomResizedCrop3D":
+    def from_config(cls, config: Dict[str, Any]) -> "RandomResizedCenterCrop3D":
         """
         Instantiates RandomResizedCrop3D from configuration.
 
@@ -62,5 +62,5 @@ class RandomResizedCrop3D(ClassyTransform):
         prob = config.get("prob", 1)
         scale = config.get("scale", [0.5, 1.0])
         size = config.get("size", 50)
-        logging.info(f"RandomResizedCrop3D | Using roi_size: {scale} and size: {size}")
+        logging.info(f"RandomResizedCenterCrop3D | Using roi_size: {scale} and size: {size}")
         return cls(prob=prob, size=size, scale=scale)
